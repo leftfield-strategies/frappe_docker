@@ -1,16 +1,13 @@
 [{
-	"name": "frappe",
-	"url": "https://github.com/frappe/frappe.git"
-  }, {
 	"name": "erpnext",
 	"url": "https://github.com/frappe/erpnext.git"
   }, {
 	"name": "shopping_cart",
 	"url": "https://github.com/frappe/shopping-cart.git"
   }, {
-	"name": "shopping_cart",
+	"name": "payments",
 	"url": "https://github.com/frappe/payments.git"
 }, {
-	"url": "https://github.com/frappe/agriculture.git",
-	"branch": "develop"
+	"name": "agriculture",
+	"url": "https://github.com/frappe/agriculture.git"
 }]
