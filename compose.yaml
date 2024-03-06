@@ -3,6 +3,7 @@ x-customizable-image: &customizable_image
   # See https://github.com/frappe/frappe_docker/blob/main/docs/custom-apps.md
   # about using custom images.
   image: leftfieldstrategies/erpnext:1.0.1
+  pull_policy: never
 
 x-depends-on-configurator: &depends_on_configurator
   depends_on:
