@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   backend:
     image: leftfieldstrategies/erpnext:1.0.1
@@ -106,6 +104,7 @@ services:
       UPSTREAM_REAL_IP_RECURSIVE: "off"
       PROXY_READ_TIMEOUT: 120
       CLIENT_MAX_BODY_SIZE: 50m
+      DB_ROOT_USER: root
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
