@@ -31,6 +31,8 @@ RUN useradd -ms /bin/bash frappe \
     # Postgres
     libpq-dev \
     postgresql-client \
+    # Redis server
+    redis-server \
     # For healthcheck
     wait-for-it \
     jq \
@@ -65,10 +67,15 @@ RUN useradd -ms /bin/bash frappe \
     && chown -R frappe:frappe /etc/nginx/nginx.conf \
     && chown -R frappe:frappe /var/log/nginx \
     && chown -R frappe:frappe /var/lib/nginx \
-    && chown -R frappe:frappe /run/nginx.pid
+    && chown -R frappe:frappe /run/nginx.pid \
+    # Set up Redis for non-root
+    && mkdir -p /var/lib/redis \
+    && chown -R frappe:frappe /var/lib/redis \
+    && chown -R frappe:frappe /etc/redis
 
 COPY resources/nginx-template.conf /templates/nginx/frappe.conf.template
 COPY resources/nginx-entrypoint.sh /usr/local/bin/nginx-entrypoint.sh
+RUN chmod +x /usr/local/bin/nginx-entrypoint.sh
 
 FROM base AS build
 
@@ -126,6 +133,16 @@ COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe
 
 WORKDIR /home/frappe/frappe-bench
 
+# Configure Frappe to connect to local Redis service
+RUN echo '{\
+    "db_host": "mariadb",\
+    "db_port": 3306,\
+    "redis_cache": "redis://localhost:6379/0",\
+    "redis_queue": "redis://localhost:6379/1",\
+    "redis_socketio": "redis://localhost:6379/2",\
+    "socketio_port": 9000\
+}' > sites/common_site_config.json
+
 # Setup volumes for CapRover persistent storage
 VOLUME [ \
   "/home/frappe/frappe-bench/sites", \
@@ -138,9 +155,11 @@ EXPOSE 80
 
 # CapRover expects the application to run on port 80
 ENV FRAPPE_PORT=80
+ENV BACKEND=127.0.0.1:8000
+ENV SOCKETIO=127.0.0.1:9000
 
 # Use supervisor to run multiple processes
-RUN pip install supervisor
+RUN pip install supervisor redis
 
 # Copy supervisor configuration
 COPY resources/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
