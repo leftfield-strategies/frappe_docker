@@ -75,7 +75,8 @@ RUN useradd -ms /bin/bash frappe \
 
 COPY resources/nginx-template.conf /templates/nginx/frappe.conf.template
 COPY resources/nginx-entrypoint.sh /usr/local/bin/nginx-entrypoint.sh
-RUN chmod +x /usr/local/bin/nginx-entrypoint.sh
+COPY resources/init.sh /usr/local/bin/init.sh
+RUN chmod +x /usr/local/bin/nginx-entrypoint.sh /usr/local/bin/init.sh
 
 FROM base AS build
 
@@ -122,6 +123,7 @@ RUN bench init \
   /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \
   bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO} && \
+  mkdir -p sites/site1.local && \
   echo "{}" > sites/common_site_config.json && \
   find apps -mindepth 1 -path "*/.git" | xargs rm -fr
 
@@ -142,6 +144,9 @@ RUN echo '{\
     "redis_socketio": "redis://localhost:6379/2",\
     "socketio_port": 9000\
 }' > sites/common_site_config.json
+
+# Add a .gitkeep file to sites directory to preserve it
+RUN touch sites/.gitkeep
 
 # Setup volumes for CapRover persistent storage
 VOLUME [ \
@@ -164,5 +169,14 @@ RUN pip install supervisor redis
 # Copy supervisor configuration
 COPY resources/supervisor.conf /etc/supervisor/conf.d/supervisor.conf
 
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+# Run the init script\n\
+/usr/local/bin/init.sh\n\
+\n\
+# Start supervisord\n\
+exec supervisord -n -c /etc/supervisor/conf.d/supervisor.conf' > /usr/local/bin/entrypoint.sh && \
+chmod +x /usr/local/bin/entrypoint.sh
+
 # Start both nginx and gunicorn using supervisor
-CMD ["supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisor.conf"]
+CMD ["/usr/local/bin/entrypoint.sh"]
